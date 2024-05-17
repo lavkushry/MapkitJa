@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapKit JS Example</title>
+    <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
+    <script src="https://js.apple-mapkit.com/search.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: #000;
+            color: #ff0;
+        }
+        #map {
+            width: 100%;
+            height: 80%;
+            position: absolute;
+        }
+        .zoom-button, .zoom-button1, #locate-button, #confirm-button {
+            position: absolute;
+            z-index: 1000;
+            background-color: #000;
+            color: #ff0;
+            border: 1px solid #ff0;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .zoom-button {
+            top: 10px;
+            left: 10px;
+        }
+        .zoom-button1 {
+            top: 50px;
+            left: 10px;
+        }
+        #locate-button {
+            top: 90px;
+            left: 10px;
+        }
+        #confirm-button {
+            bottom: 10px;
+            left: 10px;
+        }
+        #search-box {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: #000;
+            color: #ff0;
+            border: 1px solid #ff0;
+            padding: 10px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<button id="zoom-in" class="zoom-button">Zoom In</button>
+<button id="zoom-out" class="zoom-button1">Zoom Out</button>
+<script>
+    const jwtToken = 'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlAzNU5XVEc1MkoifQ.eyJpc3MiOiI3NDQyMjhKRFQ0IiwiaWF0IjoxNzE1NjczMDk3LCJleHAiOjE3MTU3NTk0OTd9.AA9-CBzFBa5TtChQaZGKjYlv_IpnQAJLw1BS4Fc605zkCmYAdzxypqHXZyxf8-oFprEkrPwBSY47VTtrdXm72w';
+
+    mapkit.init({
+      authorizationCallback: function(done) {
+        done(jwtToken);
+      }
+    });
+
+    const center = new mapkit.Coordinate(12.9715987, 77.5945627); // Chickpet, Bengaluru, India coordinates
+    const map = new mapkit.Map('map', {
+      center: center,
+      cameraDistance: 10000
+    });
+
+    function addAnnotation(coordinate, title, subtitle) {
+      const annotation = new mapkit.MarkerAnnotation(coordinate, {
+        title: title,
+        subtitle: subtitle,
+        color: "#ff0000"
+      });
+      map.addAnnotation(annotation);
+    }
+
+    addAnnotation(center, "Chickpet", "Bengaluru, India");
+
+    document.getElementById('zoom-out').addEventListener('click', function() {
+      map.cameraDistance = map.cameraDistance + 1000;
+    });
+
+    document.getElementById('zoom-in').addEventListener('click', function() {
+      map.cameraDistance = Math.max(map.cameraDistance - 1000, 1000);
+    });
+const searchBox = document.getElementById('search-box');
+const suggestionsBox = document.getElementById('suggestions');
+const searchAutocomplete = new mapkit.SearchAutocomplete();
+
+searchBox.addEventListener('input', function() {
+  searchAutocomplete.getSearchPredictions({ query: searchBox.value }, function(error, data) {
+    if (error) {
+      console.log('Autocomplete failed', error);
+      return;
+    }
+
+    // Clear previous suggestions
+    while (suggestionsBox.firstChild) {
+      suggestionsBox.removeChild(suggestionsBox.firstChild);
+    }
+
+    // Add new suggestions
+    data.results.forEach(function(result) {
+      const suggestion = document.createElement('div');
+      suggestion.textContent = result.displayLines.join(', ');
+      suggestion.addEventListener('click', function() {
+        searchBox.value = suggestion.textContent;
+
+        // Perform search
+        const searchRequest = new mapkit.SearchRequest([searchBox.value]);
+        searchRequest.call({
+          success: function(results) {
+            if (results.length > 0) {
+              map.setCenterCoordinate(results[0].coordinate, true);
+              addAnnotation(results[0].coordinate, results[0].title, results[0].subtitle);
+            }
+          },
+          failure: function() {
+            console.log('Search failed');
+          }
+        });
+      });
+      suggestionsBox.appendChild(suggestion);
+    });
+  });
+});
+
+    const locateButton = document.getElementById('locate-button');
+    locateButton.addEventListener('click', function() {
+      map.locate({
+        success: function(coordinate) {
+          map.setCenterCoordinate(coordinate, true);
+          addAnnotation(coordinate, "Current Location", "");
+        },
+        failure: function() {
+          console.log('Location failed');
+        }
+      });
+    });
+
+    const confirmButton = document.getElementById('confirm-button');
+    confirmButton.addEventListener('click', function() {
+      // Implement your own logic to handle location confirmation
+      console.log('Location confirmed:', map.center);
+    });
+</script>
+</body>
+</html>
