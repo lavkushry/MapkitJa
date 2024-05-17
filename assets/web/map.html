@@ -44,8 +44,8 @@
             top: 90px;
             left: 10px;
         }
-        #confirm-button {
-            bottom: 10px;
+        #navigate-button {
+            top: 130px;
             left: 10px;
         }
         #search-box {
@@ -64,27 +64,23 @@
 <div id="map"></div>
 <button id="zoom-in" class="button">Zoom In</button>
 <button id="zoom-out" class="button">Zoom Out</button>
+<button id="locate-button" class="button">Locate Me</button>
+<button id="navigate-button" class="button">Navigate</button>
 <input type="text" id="search-box" placeholder="Search location...">
 <script>
-    // Initialize MapKit JS with the JWT token
     const jwtToken = 'eyJhbGciOiJFUzI1NiIsImtpZCI6IlJQTExYWDUyVVciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiI3NDQyMjhKRFQ0IiwiaWF0IjoxNzE1OTM2NjQxLCJleHB0IjoxNzMxNDg4NjQxfQ.Xl0clKIaGKxSsb4hTAvs3DyhU54CY7pQROEDDFHcHoZwaMRzCkhaTNOURLCVHAKnFpkRGY06zjut7xy5RGPb3w';
-
     mapkit.init({
       authorizationCallback: function(done) {
         done(jwtToken);
       }
     });
 
-    // Set the initial center of the map
-    const center = new mapkit.Coordinate(12.9715987, 77.5945627); // Chickpet, Bengaluru, India coordinates
-
-    // Create the map
+    const center = new mapkit.Coordinate(12.9715987, 77.5945627);
     const map = new mapkit.Map('map', {
       center: center,
       zoom: 10
     });
 
-    // Function to add an annotation to the map
     function addAnnotation(coordinate, title, subtitle) {
       const annotation = new mapkit.MarkerAnnotation(coordinate, {
         title: title,
@@ -94,10 +90,14 @@
       map.addAnnotation(annotation);
     }
 
-    // Add an annotation at the initial center of the map
-    addAnnotation(center, "Chickpet", "Bengaluru, India");
+    function updateLocation(latitude, longitude) {
+      const coordinate = new mapkit.Coordinate(latitude, longitude);
+      map.setCenterAnimated(coordinate, true);
+      addAnnotation(coordinate, "Current Location", "");
+    }
 
-    // Add event listeners for the zoom in and zoom out buttons
+    window.updateLocation = updateLocation;
+
     document.getElementById('zoom-in').addEventListener('click', function() {
       map.zoom = map.zoom + 1;
     });
@@ -106,7 +106,6 @@
       map.zoom = map.zoom - 1;
     });
 
-    // Add an event listener for the search box
     const searchBox = document.getElementById('search-box');
     searchBox.addEventListener('input', function() {
       const search = new mapkit.Search();
@@ -123,22 +122,19 @@
       });
     });
 
-    // Add an event listener for the locate button
-    const locateButton = document.getElementById('locate-button');
-    locateButton.addEventListener('click', function() {
-      mapkit.Geolocation.getCurrentPosition(function(position) {
-        const coordinate = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
+    document.getElementById('locate-button').addEventListener('click', async function() {
+      try {
+        const currentLocation = await getCurrentLocation();
+        const coordinate = new mapkit.Coordinate(currentLocation.latitude, currentLocation.longitude);
         map.setCenterAnimated(coordinate, true);
         addAnnotation(coordinate, "Current Location", "");
-      }, function(error) {
-        console.log('Location failed', error);
-      });
+      } catch (error) {
+        console.error('Error getting current location:', error);
+      }
     });
 
-    // Add an event listener for the confirm button
-    const confirmButton = document.getElementById('confirm-button');
-    confirmButton.addEventListener('click', function() {
-      console.log('Location confirmed:', map.center);
+    document.getElementById('navigate-button').addEventListener('click', function() {
+      navigateToUserLocation(54.875900, -6.258100); // Example user location
     });
 </script>
 </body>
